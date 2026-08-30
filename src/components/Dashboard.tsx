@@ -65,6 +65,15 @@ export default function Dashboard({ dealsMetrics, woMetrics, lastUpdated }: { de
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
   };
 
+  const formatCurrencyAbbreviated = (val: number) => {
+    if (val >= 10000000) {
+      return `₹${(val / 10000000).toFixed(2)} Cr`;
+    } else if (val >= 100000) {
+      return `₹${(val / 100000).toFixed(2)} L`;
+    }
+    return formatCurrency(val);
+  };
+
   return (
     <div className="flex flex-col gap-6 flex-1">
       {/* Top Controls & Status */}
@@ -89,11 +98,11 @@ export default function Dashboard({ dealsMetrics, woMetrics, lastUpdated }: { de
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <KpiCard title="Total Deals" value={dealsMetrics.totalDeals} icon={<Briefcase />} />
-        <KpiCard title="Pipeline Value" value={formatCurrency(dealsMetrics.pipelineValue)} icon={<IndianRupee />} />
-        <KpiCard title="Weighted Pipeline" value={formatCurrency(dealsMetrics.weightedPipeline)} icon={<TrendingUp />} />
+        <KpiCard title="Pipeline Value" value={formatCurrencyAbbreviated(dealsMetrics.pipelineValue)} exactValue={formatCurrency(dealsMetrics.pipelineValue)} icon={<IndianRupee />} />
+        <KpiCard title="Weighted Pipeline" value={formatCurrencyAbbreviated(dealsMetrics.weightedPipeline)} exactValue={formatCurrency(dealsMetrics.weightedPipeline)} icon={<TrendingUp />} />
         <KpiCard title="Total Work Orders" value={woMetrics.totalWorkOrders} icon={<FileText />} />
-        <KpiCard title="Billed Value" value={formatCurrency(woMetrics.billedValue)} icon={<IndianRupee />} />
-        <KpiCard title="Receivables" value={formatCurrency(woMetrics.receivables)} icon={<AlertCircle />} alert={woMetrics.receivables > 0} />
+        <KpiCard title="Billed Value" value={formatCurrencyAbbreviated(woMetrics.billedValue)} exactValue={formatCurrency(woMetrics.billedValue)} icon={<IndianRupee />} />
+        <KpiCard title="Receivables" value={formatCurrencyAbbreviated(woMetrics.receivables)} exactValue={formatCurrency(woMetrics.receivables)} icon={<AlertCircle />} alert={woMetrics.receivables > 0} />
       </div>
 
       {/* Data Quality Indicator */}
@@ -196,7 +205,7 @@ export default function Dashboard({ dealsMetrics, woMetrics, lastUpdated }: { de
   );
 }
 
-function KpiCard({ title, value, icon, alert }: { title: string, value: string | number, icon: React.ReactNode, alert?: boolean }) {
+function KpiCard({ title, value, exactValue, icon, alert }: { title: string, value: string | number, exactValue?: string, icon: React.ReactNode, alert?: boolean }) {
   return (
     <div className={clsx(
       "p-4 rounded-xl border bg-slate-900/50 flex flex-col gap-3 relative overflow-hidden backdrop-blur-sm",
@@ -205,11 +214,11 @@ function KpiCard({ title, value, icon, alert }: { title: string, value: string |
       {alert && <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 blur-xl rounded-full"></div>}
       <div className="flex items-center gap-2 text-slate-400">
         <div className={clsx("p-2 rounded-lg", alert ? "bg-amber-500/10 text-amber-400" : "bg-slate-800 text-blue-400")}>
-          {<div className="w-4 h-4 flex items-center justify-center">{icon}</div>}
+          <div className="w-4 h-4 flex items-center justify-center">{icon}</div>
         </div>
-        <span className="text-xs font-medium uppercase tracking-wider">{title}</span>
+        <span className="text-[10px] md:text-xs font-medium uppercase tracking-wider line-clamp-1" title={title}>{title}</span>
       </div>
-      <div className="text-2xl font-bold tracking-tight">{value}</div>
+      <div className="text-xl md:text-2xl font-bold tracking-tight truncate" title={exactValue || String(value)}>{value}</div>
     </div>
   );
 }
