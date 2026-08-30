@@ -1,26 +1,111 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-inter: var(--font-inter);
+  --font-space: var(--font-space);
+  --font-mono: var(--font-mono);
+
+  --color-obsidian-900: #060609;
+  --color-obsidian-800: #0a0a0f;
+  --color-panel-900: #111116;
+  --color-panel-800: #18181f;
+  
+  --color-primary: #8b5cf6;
+  --color-accent: #22d3ee;
+  --color-secondary: #a78bfa;
+  
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-muted: #71717a;
+
+  --animate-subtle-float: subtle-float 6s ease-in-out infinite;
+  --animate-gradient-x: gradient-x 15s ease infinite;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer utilities {
+  .glass-shell {
+    @apply bg-panel-900/40 backdrop-blur-md border border-white/5 shadow-lg;
+  }
+  .glass-panel {
+    @apply bg-panel-800/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl;
+  }
+  .glass-elevated {
+    @apply bg-panel-800/90 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl;
+  }
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-primary to-accent;
+  }
+  .text-gradient-accent {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-secondary via-accent to-blue-400;
+  }
+  .bg-gradient-primary {
+    @apply bg-gradient-to-br from-primary to-accent;
   }
 }
 
+@keyframes subtle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes gradient-x {
+  0%, 100% {
+    background-size: 200% 200%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+:root {
+  color-scheme: dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-obsidian-900);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Cybernetic Ambient Background */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: 
+    radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(34, 211, 238, 0.04) 0%, transparent 40%);
+}
+
+/* Subtle grid */
+.ambient-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image: 
+    linear-gradient(to right, rgba(255,255,255,0.01) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.01) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at center, black, transparent 80%);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
 }

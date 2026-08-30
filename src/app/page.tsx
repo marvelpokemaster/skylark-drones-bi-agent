@@ -2,6 +2,7 @@ import { getMondayData } from '@/lib/monday/client';
 import { calculateDealsAnalytics } from '@/lib/analytics/deals';
 import { calculateWorkOrdersAnalytics } from '@/lib/analytics/workOrders';
 import Dashboard from '@/components/Dashboard';
+import { Database, Cpu, Activity } from 'lucide-react';
 
 export const revalidate = 300; // revalidate every 5 mins
 
@@ -21,24 +22,47 @@ export default async function Page() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50 flex flex-col font-sans selection:bg-blue-900/50">
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 flex flex-col gap-6">
-        <header className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800/60">
+    <main className="min-h-screen flex flex-col font-inter">
+      {/* HUD Header */}
+      <header className="glass-shell sticky top-0 z-40 px-4 md:px-8 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
+            <h1 className="text-xl md:text-2xl font-space font-bold tracking-tight text-gradient-primary relative group cursor-default">
               Skylark Intelligence
+              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors pointer-events-none mix-blend-overlay"></div>
             </h1>
-            <p className="text-sm text-slate-400 font-medium">CONVERSATIONAL BI · DEALS & WORK ORDERS</p>
+            <p className="text-[10px] md:text-xs font-mono text-zinc-400 font-medium tracking-widest uppercase">
+              Conversational BI · Deals & Work Orders
+            </p>
           </div>
-          <div className="mt-4 md:mt-0 flex gap-3 text-sm">
-            {/* We will handle refresh on client side */}
-          </div>
-        </header>
+        </div>
 
+        {/* Status HUD */}
+        <div className="flex items-center gap-6 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <div className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+            </div>
+            <span className="text-zinc-300">LIVE DATA</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1.5 opacity-80" title="System Status: Optimal">
+              <div className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_5px_theme(colors.success)]"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_theme(colors.primary)] animate-pulse"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_5px_theme(colors.accent)]"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col gap-6">
         {error ? (
-          <div className="bg-red-950/30 border border-red-900/50 p-6 rounded-xl">
-            <h2 className="text-red-400 font-semibold mb-2">Error Loading Data</h2>
-            <p className="text-red-200/70">{error}</p>
+          <div className="glass-panel border-danger/30 p-6">
+            <h2 className="text-danger font-space font-semibold mb-2 flex items-center gap-2">
+              <Activity className="w-5 h-5" /> Critical Error
+            </h2>
+            <p className="text-zinc-400 font-mono text-sm">{error}</p>
           </div>
         ) : (
           <Dashboard 

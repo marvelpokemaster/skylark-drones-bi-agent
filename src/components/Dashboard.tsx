@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect, FormEvent } from 'react';
-import { RefreshCw, TrendingUp, Briefcase, FileText, IndianRupee, AlertCircle, Info, Send, Loader2 } from 'lucide-react';
+import { RefreshCw, TrendingUp, Briefcase, FileText, IndianRupee, AlertTriangle, Info, Send, Loader2, Sparkles, Database, Terminal, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard({ dealsMetrics, woMetrics, lastUpdated }: { dealsMetrics: any, woMetrics: any, lastUpdated: any }) {
   const [messages, setMessages] = useState<{ id: string, role: string, content: string }[]>([]);
@@ -46,7 +47,7 @@ export default function Dashboard({ dealsMetrics, woMetrics, lastUpdated }: { de
       
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: data.content }]);
     } catch (err: any) {
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: `Error: ${err.message}` }]);
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: `**System Error:**\n${err.message}` }]);
     } finally {
       setIsLoading(false);
     }
@@ -55,10 +56,6 @@ export default function Dashboard({ dealsMetrics, woMetrics, lastUpdated }: { de
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     submitChat(input);
-  };
-
-  const handleLeadershipUpdate = () => {
-    submitChat('Give me a leadership update.');
   };
 
   const formatCurrency = (val: number) => {
@@ -74,151 +71,245 @@ export default function Dashboard({ dealsMetrics, woMetrics, lastUpdated }: { de
     return formatCurrency(val);
   };
 
+  const formatText = (text: string) => {
+    // Simple markdown bold parsing for the chat
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="text-zinc-100 font-semibold">{part.slice(2, -2)}</strong>;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
+  const hasDataIssues = dealsMetrics.dataQuality.invalidValueCount > 0 || woMetrics.dataQuality.invalidBilledValueCount > 0 || woMetrics.dataQuality.invalidReceivablesCount > 0;
+
   return (
     <div className="flex flex-col gap-6 flex-1">
-      {/* Top Controls & Status */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/50 backdrop-blur-sm">
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-          Live Monday.com Data • Last Refreshed: {new Date(lastUpdated).toLocaleTimeString()}
+      {/* Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-xs font-mono text-zinc-500">
+          <Terminal className="w-3.5 h-3.5" />
+          SYNCED: {new Date(lastUpdated).toLocaleTimeString()}
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowAbout(true)} className="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-md transition flex items-center gap-2">
-            <Info className="w-3.5 h-3.5" /> About / Methodology
+          <button onClick={() => setShowAbout(true)} className="px-4 py-2 text-xs font-mono bg-panel-800 hover:bg-panel-900 border border-white/10 hover:border-white/20 rounded-lg transition-all flex items-center gap-2 text-zinc-300">
+            <Info className="w-3.5 h-3.5" /> METHODOLOGY
           </button>
-          <button onClick={handleRefresh} disabled={isRefreshing} className="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-md transition flex items-center gap-2">
-            <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin")} /> Refresh Data
+          <button onClick={handleRefresh} disabled={isRefreshing} className="px-4 py-2 text-xs font-mono bg-panel-800 hover:bg-panel-900 border border-white/10 hover:border-white/20 rounded-lg transition-all flex items-center gap-2 text-zinc-300">
+            <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin")} /> REFRESH
           </button>
-          <button onClick={handleLeadershipUpdate} className="px-4 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-md transition flex items-center gap-2 shadow-lg shadow-blue-900/20">
-            <TrendingUp className="w-3.5 h-3.5" /> Leadership Update
+          <button onClick={() => submitChat('Give me a leadership update.')} className="px-5 py-2 text-xs font-mono font-bold bg-gradient-primary hover:opacity-90 text-white rounded-lg transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+            <Sparkles className="w-3.5 h-3.5" /> LEADERSHIP UPDATE
           </button>
         </div>
       </div>
 
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* KPI Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-4">
         <KpiCard title="Total Deals" value={dealsMetrics.totalDeals} icon={<Briefcase />} />
-        <KpiCard title="Pipeline Value" value={formatCurrencyAbbreviated(dealsMetrics.pipelineValue)} exactValue={formatCurrency(dealsMetrics.pipelineValue)} icon={<IndianRupee />} />
-        <KpiCard title="Weighted Pipeline" value={formatCurrencyAbbreviated(dealsMetrics.weightedPipeline)} exactValue={formatCurrency(dealsMetrics.weightedPipeline)} icon={<TrendingUp />} />
+        <KpiCard title="Pipeline Value" value={formatCurrencyAbbreviated(dealsMetrics.pipelineValue)} exactValue={formatCurrency(dealsMetrics.pipelineValue)} icon={<IndianRupee />} highlight />
+        <KpiCard title="Weighted Pipeline" value={formatCurrencyAbbreviated(dealsMetrics.weightedPipeline)} exactValue={formatCurrency(dealsMetrics.weightedPipeline)} icon={<TrendingUp />} highlight />
         <KpiCard title="Total Work Orders" value={woMetrics.totalWorkOrders} icon={<FileText />} />
-        <KpiCard title="Billed Value" value={formatCurrencyAbbreviated(woMetrics.billedValue)} exactValue={formatCurrency(woMetrics.billedValue)} icon={<IndianRupee />} />
-        <KpiCard title="Receivables" value={formatCurrencyAbbreviated(woMetrics.receivables)} exactValue={formatCurrency(woMetrics.receivables)} icon={<AlertCircle />} alert={woMetrics.receivables > 0} />
+        <KpiCard title="Billed Value" value={formatCurrencyAbbreviated(woMetrics.billedValue)} exactValue={formatCurrency(woMetrics.billedValue)} icon={<Database />} />
+        <KpiCard title="Receivables" value={formatCurrencyAbbreviated(woMetrics.receivables)} exactValue={formatCurrency(woMetrics.receivables)} icon={<AlertTriangle />} alert={woMetrics.receivables > 0} />
       </div>
 
-      {/* Data Quality Indicator */}
-      <div className="bg-amber-950/20 border border-amber-900/30 rounded-lg p-3 text-xs text-amber-200/70 flex items-start gap-2">
-        <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-        <p>
-          <strong>Data Quality Note:</strong> Analytics exclude {dealsMetrics.dataQuality.invalidValueCount} deals with missing/invalid values. 
-          For Work Orders, {woMetrics.dataQuality.invalidBilledValueCount} missing billed values, and {woMetrics.dataQuality.invalidReceivablesCount} missing receivables were safely ignored during aggregation.
-        </p>
-      </div>
+      {/* Data Quality Warning */}
+      {hasDataIssues && (
+        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="glass-panel bg-warning/5 border-warning/20 p-4 flex gap-3 items-start">
+          <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+          <div className="text-sm text-zinc-300 leading-relaxed font-inter">
+            <strong className="text-warning font-mono uppercase text-xs tracking-wider block mb-1">Data Quality Notice</strong>
+            Analytics dynamically exclude <strong className="text-zinc-100">{dealsMetrics.dataQuality.invalidValueCount} deals</strong> with missing/invalid values. 
+            For Work Orders, <strong className="text-zinc-100">{woMetrics.dataQuality.invalidBilledValueCount} missing billed values</strong>, and <strong className="text-zinc-100">{woMetrics.dataQuality.invalidReceivablesCount} missing receivables</strong> were safely bypassed.
+          </div>
+        </motion.div>
+      )}
 
       {/* Chat Interface */}
-      <div className="flex-1 flex flex-col bg-slate-900/30 border border-slate-800/50 rounded-xl overflow-hidden backdrop-blur-sm min-h-[500px]">
-        <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-6">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 text-blue-400">
-                <TrendingUp className="w-8 h-8" />
-              </div>
-              <h3 className="text-lg font-medium text-slate-300">How can I help you analyze the business?</h3>
-              <div className="flex flex-wrap justify-center gap-2 max-w-2xl mt-4">
-                {["What is our total pipeline?", "Show pipeline by stage.", "How much have we billed vs collected?", "Which sector has the strongest pipeline?"].map(q => (
-                  <button key={q} onClick={() => submitChat(q)} className="px-4 py-2 rounded-full bg-slate-800/50 hover:bg-slate-700/50 text-sm border border-slate-700 transition">
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            messages.map(m => (
-              <div key={m.id} className={clsx("flex gap-4 max-w-[85%]", m.role === 'user' ? "ml-auto" : "mr-auto")}>
-                {m.role === 'assistant' && (
-                  <div className="w-8 h-8 shrink-0 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                    <TrendingUp className="w-4 h-4" />
-                  </div>
-                )}
-                <div className={clsx("p-4 rounded-2xl", m.role === 'user' ? "bg-blue-600 text-white" : "bg-slate-800/80 text-slate-200 border border-slate-700/50 leading-relaxed whitespace-pre-wrap")}>
-                  {m.content}
+      <div className="flex-1 flex flex-col glass-panel overflow-hidden min-h-[500px] border-white/5 relative">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+        
+        <div className="flex-1 p-4 md:p-6 overflow-y-auto flex flex-col gap-6 scroll-smooth">
+          <AnimatePresence>
+            {messages.length === 0 ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-full text-zinc-500 space-y-6 max-w-2xl mx-auto w-full">
+                <div className="w-16 h-16 rounded-2xl glass-shell flex items-center justify-center text-primary shadow-[0_0_30px_rgba(139,92,246,0.15)] relative">
+                  <div className="absolute inset-0 rounded-2xl border border-primary/20 animate-pulse"></div>
+                  <Sparkles className="w-8 h-8" />
                 </div>
-              </div>
-            ))
-          )}
-          {isLoading && (
-            <div className="flex gap-4 mr-auto max-w-[85%]">
-              <div className="w-8 h-8 shrink-0 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-              </div>
-              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/50 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          )}
+                <h3 className="text-xl font-space font-medium text-zinc-200">System Awaiting Query</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                  {[
+                    "What is our total pipeline?", 
+                    "Show pipeline by stage.", 
+                    "How much have we billed vs collected?", 
+                    "Compare Mining vs Infrastructure."
+                  ].map(q => (
+                    <button 
+                      key={q} 
+                      onClick={() => submitChat(q)} 
+                      className="text-left px-4 py-3 rounded-xl glass-shell hover:bg-white/5 hover:border-primary/30 transition-all text-sm text-zinc-300 group flex justify-between items-center"
+                    >
+                      <span>{q}</span>
+                      <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 text-primary transition-all -translate-x-2 group-hover:translate-x-0" />
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              messages.map(m => (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  key={m.id} 
+                  className={clsx("flex gap-4 max-w-[90%] md:max-w-[80%]", m.role === 'user' ? "ml-auto" : "mr-auto")}
+                >
+                  {m.role === 'assistant' && (
+                    <div className="w-8 h-8 shrink-0 rounded-full glass-shell border-primary/30 flex items-center justify-center text-primary mt-1">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className={clsx(
+                    "p-4 rounded-2xl shadow-sm text-sm md:text-base whitespace-pre-wrap leading-relaxed", 
+                    m.role === 'user' 
+                      ? "bg-primary text-white rounded-tr-sm shadow-[0_4px_20px_rgba(139,92,246,0.25)]" 
+                      : "glass-shell bg-panel-800/80 text-zinc-300 rounded-tl-sm border-white/5"
+                  )}>
+                    {m.role === 'assistant' ? formatText(m.content) : m.content}
+                  </div>
+                </motion.div>
+              ))
+            )}
+            
+            {isLoading && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-4 mr-auto max-w-[80%]">
+                <div className="w-8 h-8 shrink-0 rounded-full glass-shell border-primary/30 flex items-center justify-center text-primary mt-1">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                </div>
+                <div className="p-4 rounded-2xl glass-shell bg-panel-800/80 rounded-tl-sm flex items-center gap-2 h-[52px]">
+                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse"></div>
+                  <div className="w-2 h-2 rounded-full bg-accent/60 animate-pulse delay-75"></div>
+                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse delay-150"></div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
         
-        <form onSubmit={handleSubmit} className="p-4 bg-slate-900 border-t border-slate-800/50">
-          <div className="relative">
+        <form onSubmit={handleSubmit} className="p-4 bg-panel-900/80 border-t border-white/5 backdrop-blur-xl">
+          <div className="relative flex items-center">
+            <div className="absolute left-4 text-primary">
+              <Terminal className="w-4 h-4" />
+            </div>
             <input
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-sm placeholder:text-slate-500 transition"
+              className="w-full bg-panel-800/50 border border-white/10 hover:border-white/20 focus:border-primary/50 focus:bg-panel-800 rounded-xl pl-12 pr-14 py-4 focus:outline-none focus:ring-1 focus:ring-primary/50 text-sm placeholder:text-zinc-500 transition-all font-inter shadow-inner"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question about your deals or work orders..."
+              placeholder="Query the system..."
               disabled={isLoading}
             />
             <button 
               type="submit" 
               disabled={isLoading || !input.trim()}
-              className="absolute right-2 top-2 bottom-2 aspect-square flex items-center justify-center bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-lg transition"
+              className="absolute right-2 aspect-square h-[calc(100%-16px)] flex items-center justify-center bg-primary hover:bg-primary/90 disabled:opacity-30 disabled:hover:bg-primary text-white rounded-lg transition-all shadow-[0_0_10px_rgba(139,92,246,0.3)]"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 ml-0.5" />
             </button>
           </div>
         </form>
       </div>
 
-      {/* About Modal */}
-      {showAbout && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowAbout(false)}>
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-semibold">About / Methodology</h2>
-              <button onClick={() => setShowAbout(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-            <div className="space-y-4 text-sm text-slate-300 leading-relaxed max-h-[70vh] overflow-y-auto pr-2">
-              <p><strong>Source of Truth:</strong> Live Monday.com API. Both boards (Deals & Work Orders) are read-only.</p>
-              <p><strong>Deterministic Analytics:</strong> Financial totals, pipelines, and distributions are calculated using strict TypeScript logic (no LLM math hallucination).</p>
-              <p><strong>Data Resilience:</strong> Invalid strings, unparseable currencies, and text units (e.g. "5360 HA") are aggressively cleaned via regex. Unparseable rows are omitted from specific aggregates and flagged in the data quality indicator.</p>
-              <p><strong>Weighted Pipeline Assumption:</strong> Calculated as <code>Deal Value × Probability</code>. High = 80%, Medium = 50%, Low = 20%.</p>
-              <p><strong>AI Role:</strong> The LLM handles intent routing, contextualization, insights extraction, and formatting executive summaries using the pre-calculated metrics.</p>
-            </div>
-            <button onClick={() => setShowAbout(false)} className="w-full mt-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg font-medium transition">
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Methodology Modal */}
+      <AnimatePresence>
+        {showAbout && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-obsidian-900/80 backdrop-blur-sm flex items-center justify-center p-4" 
+            onClick={() => setShowAbout(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="glass-elevated max-w-2xl w-full p-8 border-white/10 flex flex-col gap-6" 
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                <h2 className="text-xl font-space font-bold text-zinc-100 flex items-center gap-3">
+                  <Database className="w-5 h-5 text-primary" /> System Architecture & Methodology
+                </h2>
+                <button onClick={() => setShowAbout(false)} className="text-zinc-500 hover:text-white transition-colors">✕</button>
+              </div>
+              
+              <div className="space-y-6 text-sm text-zinc-300 leading-relaxed font-inter max-h-[60vh] overflow-y-auto pr-2">
+                <section>
+                  <h3 className="font-mono text-xs text-primary uppercase tracking-widest mb-2">Source of Truth</h3>
+                  <p className="bg-white/5 p-3 rounded-lg border border-white/5">Live Monday.com API. Both boards (Deals & Work Orders) are read-only and queried symmetrically.</p>
+                </section>
+                <section>
+                  <h3 className="font-mono text-xs text-primary uppercase tracking-widest mb-2">Deterministic Engine</h3>
+                  <p>Financial totals, pipelines, and distributions are calculated using strict TypeScript logic. The LLM acts purely as a narrative interface and never performs independent math.</p>
+                </section>
+                <section>
+                  <h3 className="font-mono text-xs text-primary uppercase tracking-widest mb-2">Data Resilience</h3>
+                  <p>Invalid strings, unparseable currencies, and text units (e.g. <code>"5360 HA"</code>) are aggressively cleaned. Unparseable rows are explicitly omitted from specific aggregates and flagged.</p>
+                </section>
+                <section>
+                  <h3 className="font-mono text-xs text-primary uppercase tracking-widest mb-2">Weighted Pipeline Assumptions</h3>
+                  <p>Calculated as <code>Deal Value × Probability</code>. High = 80%, Medium = 50%, Low = 20%.</p>
+                </section>
+              </div>
+              
+              <button onClick={() => setShowAbout(false)} className="w-full mt-2 py-3 glass-shell hover:bg-white/10 border-white/10 rounded-xl font-medium transition-all text-white">
+                ACKNOWLEDGE
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function KpiCard({ title, value, exactValue, icon, alert }: { title: string, value: string | number, exactValue?: string, icon: React.ReactNode, alert?: boolean }) {
+function KpiCard({ title, value, exactValue, icon, alert, highlight }: { title: string, value: string | number, exactValue?: string, icon: React.ReactNode, alert?: boolean, highlight?: boolean }) {
   return (
-    <div className={clsx(
-      "p-4 rounded-xl border bg-slate-900/50 flex flex-col gap-3 relative overflow-hidden backdrop-blur-sm",
-      alert ? "border-amber-500/30" : "border-slate-800/50"
-    )}>
-      {alert && <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 blur-xl rounded-full"></div>}
-      <div className="flex items-center gap-2 text-slate-400">
-        <div className={clsx("p-2 rounded-lg", alert ? "bg-amber-500/10 text-amber-400" : "bg-slate-800 text-blue-400")}>
-          <div className="w-4 h-4 flex items-center justify-center">{icon}</div>
+    <motion.div 
+      whileHover={{ y: -2 }}
+      className={clsx(
+        "glass-panel p-4 lg:p-5 flex flex-col gap-3 relative group transition-colors",
+        alert ? "border-warning/30 hover:border-warning/50" : (highlight ? "border-primary/20 hover:border-primary/40" : "hover:border-white/20")
+      )}
+    >
+      {/* Background glow on hover */}
+      <div className={clsx(
+        "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none mix-blend-screen",
+        alert ? "bg-warning/5" : (highlight ? "bg-primary/5" : "bg-white/5")
+      )}></div>
+      
+      <div className="flex items-center gap-2 text-zinc-400">
+        <div className={clsx(
+          "p-1.5 rounded-md", 
+          alert ? "bg-warning/10 text-warning" : (highlight ? "bg-primary/10 text-primary" : "bg-white/5 text-zinc-300")
+        )}>
+          <div className="w-3.5 h-3.5 flex items-center justify-center">{icon}</div>
         </div>
-        <span className="text-[10px] md:text-xs font-medium uppercase tracking-wider line-clamp-1" title={title}>{title}</span>
+        <span className="text-[10px] md:text-xs font-mono font-medium uppercase tracking-wider truncate" title={title}>{title}</span>
       </div>
-      <div className="text-xl md:text-2xl font-bold tracking-tight truncate" title={exactValue || String(value)}>{value}</div>
-    </div>
+      
+      <div 
+        className={clsx(
+          "text-xl md:text-2xl font-space font-bold tracking-tight truncate",
+          highlight ? "text-gradient-primary" : (alert ? "text-warning" : "text-zinc-100")
+        )} 
+        title={exactValue || String(value)}
+      >
+        {value}
+      </div>
+    </motion.div>
   );
 }
