@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   description: "Conversational Business Intelligence agent for Monday.com",
 };
 
+import CustomCursor from "@/components/ui/CustomCursor";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,7 +36,11 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
     >
       <body className="min-h-full flex flex-col font-inter bg-obsidian-900 text-zinc-200 selection:bg-primary/30">
-        <div className="ambient-bg" />
+        <CustomCursor />
+        <div className="ambient-bg">
+          <div className="ambient-blob-1" />
+          <div className="ambient-blob-2" />
+        </div>
         <div className="ambient-grid" />
         {children}
       </body>

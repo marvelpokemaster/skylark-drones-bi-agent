@@ -104,32 +104,29 @@ export default function Dashboard({ dealsMetrics, woMetrics, sectorMatrix, signa
   const hasDataIssues = dealsMetrics.dataQuality.invalidValueCount > 0 || woMetrics.dataQuality.invalidBilledValueCount > 0 || woMetrics.dataQuality.invalidReceivablesCount > 0;
 
   return (
-    <div className="flex flex-col gap-6 flex-1 w-full relative">
+    <div className="flex flex-col xl:flex-row gap-6 flex-1 w-full relative items-start">
       
-      {/* Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-xs font-mono text-zinc-500">
-          <Terminal className="w-3.5 h-3.5" />
-          SYNCED: {new Date(lastUpdated).toLocaleTimeString()}
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowAbout(true)} className="px-4 py-2 text-xs font-mono bg-panel-800 hover:bg-panel-900 border border-white/10 hover:border-white/20 rounded-lg transition-all flex items-center gap-2 text-zinc-300">
-            <Info className="w-3.5 h-3.5" /> METHODOLOGY
-          </button>
-          <button onClick={handleRefresh} disabled={isRefreshing} className="px-4 py-2 text-xs font-mono bg-panel-800 hover:bg-panel-900 border border-white/10 hover:border-white/20 rounded-lg transition-all flex items-center gap-2 text-zinc-300">
-            <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin")} /> REFRESH
-          </button>
-          <button onClick={() => submitChat('Give me a leadership update.')} className="px-5 py-2 text-xs font-mono font-bold bg-gradient-primary hover:opacity-90 text-white rounded-lg transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-            <Sparkles className="w-3.5 h-3.5" /> LEADERSHIP UPDATE
-          </button>
-        </div>
-      </div>
+      {/* Left Column: Analytics & Dashboards */}
+      <div className="w-full xl:w-[60%] flex flex-col gap-6">
 
-      {/* Main Layout Split */}
-      <div className="flex flex-col xl:flex-row gap-6 w-full items-start">
-        
-        {/* Left Column: Analytics & Dashboards */}
-        <div className="w-full xl:w-[55%] 2xl:w-[60%] flex flex-col gap-6">
+        {/* Controls Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+            <Terminal className="w-3 h-3 text-primary" />
+            SYNCED: {new Date(lastUpdated).toLocaleTimeString()}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setShowAbout(true)} className="px-4 py-2 text-xs font-mono bg-panel-800 hover:bg-panel-900 border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300 flex items-center gap-2 text-zinc-300 shadow-sm hover:shadow-md hover:-translate-y-px">
+              <Info className="w-3.5 h-3.5" /> METHODOLOGY
+            </button>
+            <button onClick={handleRefresh} disabled={isRefreshing} className="px-4 py-2 text-xs font-mono bg-panel-800 hover:bg-panel-900 border border-white/10 hover:border-white/30 rounded-lg transition-all duration-300 flex items-center gap-2 text-zinc-300 group shadow-sm hover:shadow-md hover:-translate-y-px">
+              <RefreshCw className={clsx("w-3.5 h-3.5 transition-transform duration-700", isRefreshing ? "animate-spin" : "group-hover:rotate-180")} /> REFRESH
+            </button>
+            <button onClick={() => submitChat('Give me a leadership update.')} className="px-5 py-2 text-xs font-mono font-bold bg-gradient-primary hover:opacity-90 text-white rounded-lg transition-all duration-300 flex items-center gap-2 shadow-[0_0_15px_rgba(139,92,246,0.3)] hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] hover:-translate-y-px group">
+              <Sparkles className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> LEADERSHIP UPDATE
+            </button>
+          </div>
+        </div>
           
           {/* Data Quality Warning */}
           {hasDataIssues && (
@@ -210,8 +207,8 @@ export default function Dashboard({ dealsMetrics, woMetrics, sectorMatrix, signa
             <h3 className="font-mono text-xs uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2">
               <Database className="w-4 h-4 text-primary" /> Sector Performance Matrix
             </h3>
-            <div className="overflow-x-auto pb-2">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+              <table className="w-full min-w-[700px] text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/10 text-xs font-mono text-zinc-500 tracking-wider">
                     <th className="py-3 pr-4 font-medium">SECTOR</th>
@@ -246,9 +243,9 @@ export default function Dashboard({ dealsMetrics, woMetrics, sectorMatrix, signa
         </div>
 
         {/* Right Column: Chat Assistant (Sticky on Desktop) */}
-        <div className="w-full xl:w-[45%] 2xl:w-[40%] xl:sticky xl:top-24 h-[600px] xl:h-[calc(100vh-140px)] flex flex-col glass-panel overflow-hidden border-white/5 shadow-2xl">
+        <div className="w-full xl:w-[40%] xl:sticky xl:top-[106px] flex flex-col glass-panel overflow-hidden border-white/5 shadow-2xl h-[500px] xl:max-h-[calc(100vh-138px)] xl:h-full">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
-          <div className="bg-panel-900/60 p-4 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
+          <div className="bg-panel-900/60 p-4 border-b border-white/5 flex items-center justify-between backdrop-blur-md shrink-0">
             <h3 className="font-space font-semibold text-zinc-100 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" /> Intelligence Assistant
             </h3>
@@ -345,7 +342,6 @@ export default function Dashboard({ dealsMetrics, woMetrics, sectorMatrix, signa
             </div>
           </form>
         </div>
-      </div>
 
       {/* Sector Deep Dive Modal */}
       <AnimatePresence>

@@ -3,6 +3,7 @@ import { calculateDealsAnalytics } from '@/lib/analytics/deals';
 import { calculateWorkOrdersAnalytics } from '@/lib/analytics/workOrders';
 import { buildSectorMatrix, calculateRiskOpportunitySignals } from '@/lib/analytics/sectorMatrix';
 import Dashboard from '@/components/Dashboard';
+import FrostedHeading from '@/components/ui/FrostedHeading';
 import { Database, Activity } from 'lucide-react';
 
 export const revalidate = 300; // revalidate every 5 mins
@@ -32,10 +33,9 @@ export default async function Page() {
       <header className="glass-shell sticky top-0 z-40 px-4 md:px-8 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-space font-bold tracking-tight text-gradient-primary relative group cursor-default">
+            <FrostedHeading className="text-xl md:text-2xl font-space font-bold tracking-tight mb-0.5 block">
               Skylark Intelligence
-              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors pointer-events-none mix-blend-overlay"></div>
-            </h1>
+            </FrostedHeading>
             <p className="text-[10px] md:text-xs font-mono text-zinc-400 font-medium tracking-widest uppercase">
               Conversational BI · Deals & Work Orders
             </p>
