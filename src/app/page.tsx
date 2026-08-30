@@ -1,8 +1,9 @@
 import { getMondayData } from '@/lib/monday/client';
 import { calculateDealsAnalytics } from '@/lib/analytics/deals';
 import { calculateWorkOrdersAnalytics } from '@/lib/analytics/workOrders';
+import { buildSectorMatrix, calculateRiskOpportunitySignals } from '@/lib/analytics/sectorMatrix';
 import Dashboard from '@/components/Dashboard';
-import { Database, Cpu, Activity } from 'lucide-react';
+import { Database, Activity } from 'lucide-react';
 
 export const revalidate = 300; // revalidate every 5 mins
 
@@ -10,12 +11,16 @@ export default async function Page() {
   let initialData = null;
   let dealsMetrics = null;
   let woMetrics = null;
+  let sectorMatrix = null;
+  let signals = null;
   let error = null;
 
   try {
     initialData = await getMondayData();
     dealsMetrics = calculateDealsAnalytics(initialData.deals);
     woMetrics = calculateWorkOrdersAnalytics(initialData.workOrders);
+    sectorMatrix = buildSectorMatrix(initialData.deals, initialData.workOrders);
+    signals = calculateRiskOpportunitySignals(sectorMatrix);
   } catch (err: any) {
     console.error("Failed to load initial data:", err);
     error = err.message;
@@ -67,7 +72,9 @@ export default async function Page() {
         ) : (
           <Dashboard 
             dealsMetrics={dealsMetrics} 
-            woMetrics={woMetrics} 
+            woMetrics={woMetrics}
+            sectorMatrix={sectorMatrix}
+            signals={signals}
             lastUpdated={initialData?.lastUpdated}
           />
         )}

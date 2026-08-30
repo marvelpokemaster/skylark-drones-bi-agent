@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import { getMondayData } from '@/lib/monday/client';
 import { calculateDealsAnalytics } from '@/lib/analytics/deals';
 import { calculateWorkOrdersAnalytics } from '@/lib/analytics/workOrders';
-import { calculateCrossBoardAnalytics } from '@/lib/analytics/crossBoard';
+import { buildSectorMatrix, calculateRiskOpportunitySignals } from '@/lib/analytics/sectorMatrix';
 import { NextResponse } from 'next/server';
 
 export const maxDuration = 60; // Allow 60 seconds
@@ -25,52 +25,93 @@ export async function POST(req: Request) {
     // 2. Compute Deterministic Analytics
     const dealsMetrics = calculateDealsAnalytics(data.deals);
     const woMetrics = calculateWorkOrdersAnalytics(data.workOrders);
-    const crossMetrics = calculateCrossBoardAnalytics(data.deals, data.workOrders);
+    const sectorMatrix = buildSectorMatrix(data.deals, data.workOrders);
+    const signals = calculateRiskOpportunitySignals(sectorMatrix);
+
+    const currencyFmt = (val: number) => val.toLocaleString('en-IN', {style: 'currency', currency: 'INR', maximumFractionDigits: 0});
 
     // 3. Assemble System Prompt Context
     const systemPrompt = `
       You are the Skylark Intelligence BI Agent.
-      You help founders and executives understand their business using Monday.com data.
+      You are an AI-native executive intelligence platform.
       
       RULES:
       - Direct answer first.
-      - Never invent or calculate numbers yourself. Only use the metrics provided below.
-      - If the user asks a question not covered by the data, state that gracefully.
-      - If the question is ambiguous (e.g. "What is our revenue?"), ask clarifying questions ("Do you mean pipeline value, billed value, or collected amount?").
-      - When summarizing, mention data quality caveats (e.g., if there are invalid records).
-      - Provide useful insights and cross-board correlations where possible.
+      - NEVER invent, interpolate, or calculate numbers yourself. Only use the metrics provided below.
+      - If the question is ambiguous, ask clarifying questions.
+      - DO NOT PRETEND sector is a unique record-level join key. If comparing across boards, explicitly state "Sector-level comparison".
+
+      CRITICAL FEATURE - EVIDENCE BLOCK:
+      For every meaningful numerical answer, YOU MUST provide a small compact "Evidence" block at the bottom of your response to prove you didn't hallucinate.
+      Format it exactly like this:
       
+      Evidence:
+      • Pipeline: ₹XX Cr
+      • Deals: 42
+      Source: Deals / Work Orders · live Monday data
+      Data Quality: [Mention any excluded invalid records if applicable]
+      
+      CRITICAL FEATURE - LEADERSHIP UPDATE 2.0:
+      If the user asks for a "Leadership Update", generate a highly structured executive snapshot using EXACTLY this format:
+      
+      **EXECUTIVE SNAPSHOT**
+      **Pipeline:** ${currencyFmt(dealsMetrics.pipelineValue)} | **Weighted:** ${currencyFmt(dealsMetrics.weightedPipeline)}
+      **Operations:** ${woMetrics.activeWorkOrders} active work orders · ${Math.round((woMetrics.completedWorkOrders/woMetrics.totalWorkOrders)*100)}% completion
+      **Financial:** ${currencyFmt(woMetrics.billedValue)} billed | ${currencyFmt(woMetrics.collectedValue)} collected | ${currencyFmt(woMetrics.receivables)} receivable
+      
+      **KEY INSIGHTS**
+      1. [Insight 1 based on sectors]
+      2. [Insight 2]
+      3. [Insight 3]
+      
+      **RISKS**
+      ${signals.risks.map(r => `⚠ ${r}`).join('\n')}
+      
+      **OPPORTUNITIES**
+      ${signals.opportunities.map(r => `✓ ${r}`).join('\n')}
+      
+      **DATA QUALITY**
+      ${dealsMetrics.dataQuality.invalidValueCount} deal records excluded due to missing values.
+      
+      *Based on live Monday data* (${new Date().toLocaleTimeString()})
+
+
       CURRENT LIVE METRICS (Deterministically Calculated):
       
       DEALS:
-      - Total Deals: ${dealsMetrics.totalDeals}
-      - Open Deals: ${dealsMetrics.openDeals}
-      - Closed Won Deals: ${dealsMetrics.closedWonDeals}
-      - Pipeline Value: ${dealsMetrics.pipelineValue.toLocaleString('en-IN', {style: 'currency', currency: 'INR'})}
-      - Weighted Pipeline: ${dealsMetrics.weightedPipeline.toLocaleString('en-IN', {style: 'currency', currency: 'INR'})}
+      - Total Deals: ${dealsMetrics.totalDeals} (Open: ${dealsMetrics.openDeals})
+      - Pipeline Value: ${currencyFmt(dealsMetrics.pipelineValue)}
+      - Weighted Pipeline: ${currencyFmt(dealsMetrics.weightedPipeline)}
       - Pipeline By Sector: ${JSON.stringify(dealsMetrics.pipelineBySector)}
       - Pipeline By Stage: ${JSON.stringify(dealsMetrics.pipelineByStage)}
-      - Data Quality: ${dealsMetrics.dataQuality.invalidValueCount} deals had missing/invalid deal values.
+      - Data Quality Excluded: ${dealsMetrics.dataQuality.invalidValueCount} deals
       
       WORK ORDERS:
-      - Total Work Orders: ${woMetrics.totalWorkOrders}
-      - Completed: ${woMetrics.completedWorkOrders}
-      - Active: ${woMetrics.activeWorkOrders}
-      - Total Billed Value: ${woMetrics.billedValue.toLocaleString('en-IN', {style: 'currency', currency: 'INR'})}
-      - Total Collected Value: ${woMetrics.collectedValue.toLocaleString('en-IN', {style: 'currency', currency: 'INR'})}
-      - Outstanding Receivables: ${woMetrics.receivables.toLocaleString('en-IN', {style: 'currency', currency: 'INR'})}
-      - Sector Distribution: ${JSON.stringify(woMetrics.sectorDist)}
-      - Execution Status Dist: ${JSON.stringify(woMetrics.executionStatusDist)}
-      - Data Quality: Invalid/missing fields -> Billed: ${woMetrics.dataQuality.invalidBilledValueCount}, Collected: ${woMetrics.dataQuality.invalidCollectedValueCount}, Receivables: ${woMetrics.dataQuality.invalidReceivablesCount}
+      - Total Work Orders: ${woMetrics.totalWorkOrders} (Completed: ${woMetrics.completedWorkOrders})
+      - Total Billed Value: ${currencyFmt(woMetrics.billedValue)}
+      - Total Collected Value: ${currencyFmt(woMetrics.collectedValue)}
+      - Outstanding Receivables: ${currencyFmt(woMetrics.receivables)}
+      - Data Quality Missing -> Billed: ${woMetrics.dataQuality.invalidBilledValueCount}, Collected: ${woMetrics.dataQuality.invalidCollectedValueCount}, Receivables: ${woMetrics.dataQuality.invalidReceivablesCount}
       
-      CROSS-BOARD METRICS (Sector Comparison):
-      ${JSON.stringify(crossMetrics.sectorComparison)}
+      SECTOR PERFORMANCE MATRIX (Cross-Board):
+      ${JSON.stringify(sectorMatrix.map(s => ({
+        Sector: s.sectorName,
+        Pipeline: currencyFmt(s.pipeline),
+        Weighted: currencyFmt(s.weightedPipeline),
+        Deals: s.dealCount,
+        WOs: s.workOrderCount,
+        Completion: Math.round(s.completionRate) + '%',
+        Billed: currencyFmt(s.billed),
+        Collected: currencyFmt(s.collected),
+        Receivables: currencyFmt(s.receivable)
+      })))}
       
-      If the user asks for a "Leadership Update", provide an executive summary covering Pipeline, Operational Highlights, Billed vs Collected, Receivables, Strong/Weak Sectors, and Risks based on the metrics above.
+      AUTOMATED SIGNALS:
+      Risks: ${JSON.stringify(signals.risks)}
+      Opportunities: ${JSON.stringify(signals.opportunities)}
     `;
 
     // 4. Generate AI Response
-    // Format messages for @google/genai
     const formattedMessages = messages.map((m: any) => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }]
