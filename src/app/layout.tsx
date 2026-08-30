@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 };
 
 import CustomCursor from "@/components/ui/CustomCursor";
+import ConstellationBackground from "@/components/ui/ConstellationBackground";
 
 export default function RootLayout({
   children,
@@ -37,6 +38,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-inter bg-obsidian-900 text-zinc-200 selection:bg-primary/30">
         <CustomCursor />
+        <ConstellationBackground />
         <div className="ambient-bg">
           <div className="ambient-blob-1" />
           <div className="ambient-blob-2" />
