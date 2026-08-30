@@ -50,7 +50,7 @@ export function PipelineBySectorChart({ data }: { data: Record<string, number> }
     .slice(0, 8); // top 8
 
   return (
-    <div className="h-[280px] w-full">
+    <div className="h-[280px] 2xl:h-[360px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" horizontal={true} vertical={false} />
@@ -80,7 +80,7 @@ export function ExecutionStatusChart({ data }: { data: Record<string, number> })
     .sort((a, b) => b.value - a.value);
 
   return (
-    <div className="h-[280px] w-full">
+    <div className="h-[280px] 2xl:h-[360px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
           <Pie
@@ -117,7 +117,7 @@ export function BillingCollectionChart({ billed, collected, receivable }: { bill
   ];
 
   return (
-    <div className="h-[280px] w-full">
+    <div className="h-[280px] 2xl:h-[360px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />

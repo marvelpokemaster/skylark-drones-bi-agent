@@ -1,89 +1,90 @@
 'use client';
-
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 export default function CustomCursor() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({ x: -100, y: -100 });
   const [isHovering, setIsHovering] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [isText, setIsText] = useState(false);
+  const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
-    // Detect touch device or reduced motion
-    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    
-    setIsTouchDevice(hasTouch);
-    setReducedMotion(prefersReducedMotion);
+    // Disable on mobile/touch devices or reduced motion
+    const mq = window.matchMedia('(pointer: fine) and (prefers-reduced-motion: no-preference)');
+    setIsMobile(!mq.matches);
 
-    if (hasTouch || prefersReducedMotion) return;
+    const checkMq = (e: MediaQueryListEvent) => setIsMobile(!e.matches);
+    mq.addEventListener('change', checkMq);
 
-    // Apply cursor-none class to body to hide default cursor
-    document.body.classList.add('has-custom-cursor');
+    return () => mq.removeEventListener('change', checkMq);
+  }, []);
 
+  useEffect(() => {
+    if (isMobile) return;
+
+    let frame: number;
     const updateMousePosition = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-      if (!isVisible) setIsVisible(true);
-    };
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        setMousePosition({ x: e.clientX, y: e.clientY });
+        // Site-wide Light Field tracker
+        document.documentElement.style.setProperty('--pointer-x', `${e.clientX}px`);
+        document.documentElement.style.setProperty('--pointer-y', `${e.clientY}px`);
+      });
 
-    const handleMouseLeave = () => setIsVisible(false);
-    const handleMouseEnter = () => setIsVisible(true);
-
-    const checkHoverState = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      // Check if hovering over interactive elements
-      const isInteractive = target.closest('a, button, input, textarea, select, [role="button"], tr.cursor-pointer');
-      setIsHovering(!!isInteractive);
+      if (!target) return;
+      
+      const isInteractive = window.getComputedStyle(target).cursor === 'pointer' || target.tagName.toLowerCase() === 'button' || target.closest('button') !== null || target.closest('a') !== null;
+      const isTextNode = window.getComputedStyle(target).cursor === 'text' || target.tagName.toLowerCase() === 'p' || target.tagName.toLowerCase() === 'h1' || target.tagName.toLowerCase() === 'h2' || target.tagName.toLowerCase() === 'h3' || target.tagName.toLowerCase() === 'span';
+      
+      setIsHovering(isInteractive);
+      setIsText(isTextNode && !isInteractive);
     };
 
-    window.addEventListener('mousemove', updateMousePosition);
-    window.addEventListener('mouseover', checkHoverState);
-    document.addEventListener('mouseleave', handleMouseLeave);
-    document.addEventListener('mouseenter', handleMouseEnter);
+    window.addEventListener('mousemove', updateMousePosition, { passive: true });
+    return () => window.removeEventListener('mousemove', updateMousePosition);
+  }, [isMobile]);
 
-    return () => {
-      document.body.classList.remove('has-custom-cursor');
-      window.removeEventListener('mousemove', updateMousePosition);
-      window.removeEventListener('mouseover', checkHoverState);
-      document.removeEventListener('mouseleave', handleMouseLeave);
-      document.removeEventListener('mouseenter', handleMouseEnter);
-    };
-  }, [isVisible]);
-
-  if (isTouchDevice || reducedMotion || !isVisible) return null;
+  if (isMobile) return null;
 
   return (
     <>
-      {/* Tiny central dot */}
+      {/* Soft Glow */}
       <motion.div
-        className="fixed top-0 left-0 w-1.5 h-1.5 bg-white rounded-full pointer-events-none z-[9999] mix-blend-difference"
+        className="fixed top-0 left-0 w-32 h-32 rounded-full pointer-events-none z-[100] mix-blend-screen"
+        style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 60%)' }}
+        animate={{
+          x: mousePosition.x - 64,
+          y: mousePosition.y - 64,
+          opacity: isText ? 0.5 : (isHovering ? 0.8 : 0.6)
+        }}
+        transition={{ type: "tween", ease: "linear", duration: 0 }}
+      />
+      
+      {/* Translucent Ring */}
+      <motion.div
+        className="fixed top-0 left-0 rounded-full pointer-events-none z-[100] border border-white/20"
+        animate={{
+          x: mousePosition.x - (isHovering ? 16 : 8),
+          y: mousePosition.y - (isHovering ? 16 : 8),
+          width: isHovering ? 32 : 16,
+          height: isHovering ? 32 : 16,
+          opacity: isText ? 0 : 1,
+          borderColor: isHovering ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)'
+        }}
+        transition={{ type: "tween", ease: "linear", duration: 0.1 }}
+      />
+
+      {/* Tiny Center Dot */}
+      <motion.div
+        className="fixed top-0 left-0 w-1.5 h-1.5 bg-white rounded-full pointer-events-none z-[100]"
         animate={{
           x: mousePosition.x - 3,
           y: mousePosition.y - 3,
-          scale: isHovering ? 0 : 1,
-          opacity: isHovering ? 0 : 1
+          opacity: isText ? 0 : 1
         }}
-        transition={{ type: 'tween', ease: 'linear', duration: 0 }}
-      />
-      
-      {/* Soft outer ring */}
-      <motion.div
-        className="fixed top-0 left-0 w-8 h-8 rounded-full border pointer-events-none z-[9998]"
-        animate={{
-          x: mousePosition.x - 16,
-          y: mousePosition.y - 16,
-          scale: isHovering ? 1.5 : 1,
-          borderColor: isHovering ? 'rgba(34, 211, 238, 0.4)' : 'rgba(255, 255, 255, 0.15)',
-          backgroundColor: isHovering ? 'rgba(34, 211, 238, 0.05)' : 'transparent'
-        }}
-        transition={{ 
-          type: 'spring',
-          stiffness: 150,
-          damping: 20,
-          mass: 0.5
-        }}
+        transition={{ type: "tween", ease: "linear", duration: 0 }}
       />
     </>
   );

@@ -33,10 +33,10 @@ export default async function Page() {
       <header className="glass-shell sticky top-0 z-40 px-4 md:px-8 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div>
-            <FrostedHeading as="h1" className="text-xl md:text-2xl font-space font-bold tracking-tight mb-0.5 block">
+            <FrostedHeading as="h1" className="text-xl md:text-2xl 2xl:text-4xl font-space font-bold tracking-tight mb-0.5 block">
               Skylark Intelligence
             </FrostedHeading>
-            <p className="text-[10px] md:text-xs font-mono text-zinc-400 font-medium tracking-widest uppercase">
+            <p className="text-[10px] md:text-xs 2xl:text-sm font-mono text-zinc-400 font-medium tracking-widest uppercase">
               Conversational BI · Deals & Work Orders
             </p>
           </div>
@@ -61,7 +61,7 @@ export default async function Page() {
         </div>
       </header>
 
-      <div className="flex-1 w-full px-4 md:px-8 py-6 flex flex-col gap-6">
+      <div className="flex-1 w-full px-4 md:px-8 2xl:px-16 py-6 2xl:py-8 flex flex-col gap-6 2xl:gap-8">
         {error ? (
           <div className="glass-panel border-danger/30 p-6">
             <h2 className="text-danger font-space font-semibold mb-2 flex items-center gap-2">

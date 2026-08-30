@@ -1,54 +1,48 @@
 'use client';
+import { useRef, useState, ElementType } from 'react';
+import clsx from 'clsx';
 
-import React, { useRef, MouseEvent, useState, useEffect } from 'react';
-
-export default function FrostedHeading({ children, className = '' }: { children: React.ReactNode, className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
+export default function FrostedHeading({ children, className, as: Component = 'h2' }: { children: React.ReactNode, className?: string, as?: ElementType }) {
+  const ref = useRef<HTMLElement>(null);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
-  }, []);
-
-  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-    if (reducedMotion || isMobile || !ref.current) return;
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    ref.current.style.setProperty('--mouse-x', `${x}px`);
-    ref.current.style.setProperty('--mouse-y', `${y}px`);
+    setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  const shouldDisable = reducedMotion || isMobile;
-
   return (
-    <div 
-      ref={ref}
+    <Component 
+      className={clsx("relative inline-block overflow-visible", className)}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => !shouldDisable && setIsHovered(true)}
+      onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`relative inline-block ${className}`}
     >
-      <span className="relative z-10">{children}</span>
+      {/* Level 1: Base text */}
+      <span ref={ref} className="relative z-10 transition-colors duration-300">
+        {children}
+      </span>
       
-      {!shouldDisable && (
-        <span 
-          aria-hidden="true"
-          className="absolute inset-0 z-20 pointer-events-none transition-opacity duration-500"
-          style={{
-            opacity: isHovered ? 1 : 0,
-            color: 'transparent',
-            backgroundImage: 'radial-gradient(circle 100px at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(255,255,255,0.9) 0%, rgba(34,211,238,0.6) 20%, rgba(139,92,246,0.3) 50%, transparent 100%)',
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-          }}
-        >
-          {children}
-        </span>
-      )}
-    </div>
+      {/* Level 2 & 3 & 4: Frost, Specular, and Edge layers */}
+      <span 
+        className="absolute inset-0 z-20 text-transparent pointer-events-none transition-opacity duration-300"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background: `
+            radial-gradient(40px circle at ${pos.x}px ${pos.y}px, rgba(255,255,255,0.9) 0%, transparent 100%),
+            radial-gradient(120px circle at ${pos.x}px ${pos.y}px, rgba(139, 92, 246, 0.5) 0%, rgba(34, 211, 238, 0.2) 50%, transparent 100%),
+            radial-gradient(300px circle at ${pos.x}px ${pos.y}px, rgba(255, 255, 255, 0.05) 0%, transparent 100%)
+          `,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}
+        aria-hidden="true"
+      >
+        {children}
+      </span>
+    </Component>
   );
 }
