@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Skylark Intelligence
 
-## Getting Started
+## Overview
+Skylark Intelligence is a conversational Business Intelligence agent designed for founders and executives to query real-world, messy Monday.com data (Deals and Work Orders).
 
-First, run the development server:
+It features a premium, executive-grade dashboard, deterministic financial calculations, and an LLM-powered chat interface to extract insights, perform cross-board comparisons, and generate leadership updates.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Architecture
+Browser → Next.js UI → Server API Route (`/api/chat`) → Monday Data Layer (GraphQL) → Normalization Layer → Deterministic Analytics Engine → LLM Response Synthesis → Browser.
+
+## Tech Stack
+- Next.js 15 (App Router, React Server Components)
+- TypeScript
+- Tailwind CSS v4
+- Vercel AI SDK
+- Monday.com GraphQL API
+
+## Monday.com Integration
+- The app uses the `fetch` API directly server-side to query `api.monday.com/v2` using `items_page` cursor-based pagination.
+- Caching is managed natively via Next.js Data Cache (`revalidate: 300`) with a manual refresh button that calls `revalidateTag()`.
+- Boards are strictly read-only.
+
+## Data Normalization
+Because the real-world Monday boards contain messy text fields for numerical data (e.g., "5360 HA" for quantity, missing values, GMT date strings):
+- A robust parsing layer extracts integers and floats from text strings.
+- Currencies and probabilities are mapped (High=0.8, Medium=0.5, Low=0.2).
+- Data quality is explicitly tracked (e.g. counting missing values) and exposed to the user in the UI and to the LLM.
+
+## Analytics & AI Agent Behavior
+- The LLM **does not** do math. All metrics (Pipeline, Weighted Pipeline, Billed, Collected, Receivables) are pre-calculated deterministically in TypeScript and passed to the LLM as context.
+- The agent interprets intent, matches it with the correct pre-calculated metric, and explains it naturally.
+- Capable of generating an executive Leadership Update.
+
+## Local Setup
+1. Clone the repository.
+2. `npm install`
+3. Create `.env.local` based on the variables below.
+4. `npm run dev`
+
+## Environment Variables
+```env
+MONDAY_API_TOKEN=your_token
+MONDAY_DEALS_BOARD_ID=5030967513
+MONDAY_WORK_ORDERS_BOARD_ID=5030967768
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Vercel Deployment
+Simply connect the repository to Vercel. Ensure the environment variables are added in the Vercel project settings. The Next.js App Router architecture is perfectly optimized for Vercel serverless deployment.
